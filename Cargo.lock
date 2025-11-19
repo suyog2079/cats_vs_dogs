@@ -163,6 +163,7 @@ name = "cats_vs_dogs"
 version = "0.1.0"
 dependencies = [
  "image",
+ "rand",
 ]
 
 [[package]]
