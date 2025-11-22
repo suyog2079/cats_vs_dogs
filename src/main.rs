@@ -1,7 +1,7 @@
 use image::{DynamicImage, GenericImageView, ImageFormat, imageops};
 use rand::Rng;
 use std::fs::File;
-use std::io;
+use std::io::{self, Read};
 use std::io::{BufWriter, Write};
 use std::path::Path;
 
@@ -21,7 +21,7 @@ fn main() {
     }
 }
 
-fn compute(inp: &[f32], theta: &[f32]) -> i32 {
+fn compute(inp: &[f32], theta: &mut Vec<f32>) -> i32 {
     let mut sum = 0.0;
     for i in 0..inp.len() {
         sum += inp[i] * theta[i];
@@ -39,14 +39,14 @@ fn perceptron(inp: &[f32], theta: &mut Vec<f32>, label: i32) {
 }
 
 fn train() {
-    let mut label: i32;
-    let mut inp: Vec<f32>;
-    let theta: &mut Vec<f32> = &mut vec![0.0; 10001];
-    generate_random_theta(theta); // 32*32*3 + 1 bias
+    let mut theta = vec![0.0; 50025002];
+    generate_random_theta(&mut theta);
     for i in 0..1000 {
-        (inp, label) = get_train_image_vector(i);
-        perceptron(&inp, theta, label);
+        let (inp, label) = get_train_image_vector(i);
+        perceptron(&inp, &mut theta, label);
+        println!("{}\n",i);
     }
+    write_theta(&theta);
 }
 
 fn get_train_image_vector(i: i32) -> (Vec<f32>, i32) {
@@ -62,6 +62,12 @@ fn get_train_image_vector(i: i32) -> (Vec<f32>, i32) {
     let img = image::open(&Path::new(&path)).unwrap();
     let mut inp: Vec<f32> = img.as_bytes().iter().map(|&p| p as f32).collect();
     normalize(&mut inp);
+    let original_len = inp.len();
+    for i in 0..original_len {
+        for j in i..original_len {
+            inp.push(inp[i] * inp[j]);
+        }
+    }
     (inp, label)
 }
 
@@ -78,6 +84,12 @@ fn get_test_image_vector(i: i32) -> (Vec<f32>, i32) {
     let img = image::open(&Path::new(&path)).unwrap();
     let mut inp: Vec<f32> = img.as_bytes().iter().map(|&p| p as f32).collect();
     normalize(&mut inp);
+    let original_len = inp.len();
+    for i in 0..original_len {
+        for j in i..original_len {
+            inp.push(inp[i] * inp[j]);
+        }
+    }
     (inp, label)
 }
 
@@ -91,17 +103,18 @@ fn normalize(data: &mut Vec<f32>) {
 fn generate_random_theta(theta: &mut Vec<f32>) {
     let mut rng = rand::rng();
 
-    let range = rand::distr::Uniform::new(-0.01, 0.01);
-
-    theta.clear();
-    // theta.extend((0..10001).map(|_| range.sample(&rng)));
+    let range = rand::distr::Uniform::new(-0.01, 0.01).unwrap();
+    *theta = (&mut rng)
+        .sample_iter(range)
+        .take(50025002)
+        .collect::<Vec<f32>>();
 }
 
 fn test() {
     let mut index = String::new();
     let label: i32;
     let inp: Vec<f32>;
-    let theta: &mut Vec<f32> = &mut vec![0.0; 10001];
+    let theta: &mut Vec<f32> = &mut vec![0.0; 50025002];
     println!("enter index: ");
 
     io::stdin()
@@ -120,14 +133,28 @@ fn test() {
     }
 }
 
-fn read_theta(theta: &mut Vec<f32>) {}
+fn read_theta(theta: &mut Vec<f32>) {
+    let path = Path::new("theta.txt");
+
+    let buf: Vec<u8> = std::fs::read(path).unwrap();
+
+    *theta = buf
+        .chunks_exact(4)
+        .map(|chunk| {
+            let bytes = chunk.try_into().expect("Chunk size is not 4 bytes");
+            f32::from_le_bytes(bytes)
+        })
+        .collect();
+}
 
 fn write_theta(theta: &Vec<f32>) {
-    let file = File::create("theta.txt");
-    let mut writer = BufWriter::new(file);
+    let path = Path::new("theta.txt");
+    let mut file = File::create(path).expect("Cannot create theta.txt");
 
-    // Write each value on a new line
-    for value in theta {
-        writeln!(writer, "{}", value);
+    for (i, val) in theta.iter().enumerate() {
+        if i > 0 {
+            write!(file, " ").unwrap(); // space-separated
+        }
+        write!(file, "{}", val).unwrap();
     }
 }
