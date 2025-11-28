@@ -62,18 +62,23 @@ fn train() {
     let mut sum: Vec<f32> = vec![0.0; inp.len()];
 
     let epochs = 100;
-    let lambda = 0.01;
-    let eta = 0.1;
+    let lambda = 0.5;
+    let learning_rate = 0.05;
     generate_random_theta(theta);
     for j in 0..epochs {
         println!("{}", j + 1);
         for i in 0..1000 {
             let (inp, label) = get_train_image_vector(i);
             guess = compute(&inp, theta);
-            sum = sum.iter().zip(inp.iter()).map(|(s, &x)| s + x * (guess - label as f32)).collect(); 
+            sum = sum
+                .iter()
+                .zip(inp.iter())
+                .map(|(s, &x)| s + x * (guess - label as f32))
+                .collect();
         }
+        let eta = learning_rate;
         for k in 0..theta.len() {
-            theta[k] -= eta * sum[k] / 1000.0 - eta * lambda * theta[k]; 
+            theta[k] -= eta * sum[k] / 1000.0 - eta * lambda * theta[k];
         }
     }
     write_theta(&theta);
@@ -90,7 +95,7 @@ fn get_train_image_vector(i: i32) -> (Vec<f32>, i32) {
         label = 1; // dog is 1 
     }
     let img = image::open(&Path::new(&path)).unwrap().to_luma8();
-    let img = image::imageops::resize(&img, 30, 30, imageops::FilterType::Gaussian);
+    let img = image::imageops::resize(&img, 20, 20, imageops::FilterType::Gaussian);
     let mut inp: Vec<f32> = img.as_raw().iter().map(|&p| p as f32).collect();
     let original_len = inp.len();
     normalize(&mut inp);
@@ -114,7 +119,7 @@ fn get_test_image_vector(i: i32) -> (Vec<f32>, i32) {
         label = 1; // dog is 1 
     }
     let img = image::open(&Path::new(&path)).unwrap().to_luma8();
-    let img = image::imageops::resize(&img, 30, 30, imageops::FilterType::Gaussian);
+    let img = image::imageops::resize(&img, 20, 20, imageops::FilterType::Gaussian);
     let mut inp: Vec<f32> = img.as_raw().iter().map(|&p| p as f32).collect();
     let original_len = inp.len();
     normalize(&mut inp);
