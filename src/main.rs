@@ -61,10 +61,9 @@ fn train() {
     let mut guess: f32;
     let mut sum: Vec<f32> = vec![0.0; inp.len()];
 
-    let epochs = 100;
+    let epochs = 50;
     let lambda = 0.5;
-    let learning_rate = 0.05;
-    generate_random_theta(theta);
+    let learning_rate = 0.001;
     for j in 0..epochs {
         println!("{}", j + 1);
         for i in 0..1000 {
@@ -76,9 +75,10 @@ fn train() {
                 .map(|(s, &x)| s + x * (guess - label as f32))
                 .collect();
         }
-        let eta = learning_rate;
+        let eta = learning_rate/(1.0 + j as f32 * 0.01);
         for k in 0..theta.len() {
             theta[k] -= eta * sum[k] / 1000.0 - eta * lambda * theta[k];
+            // theta[k] -= eta * sum[k] / 1000.0/*  - eta * lambda * theta[k] */;
         }
     }
     write_theta(&theta);
@@ -136,17 +136,6 @@ fn normalize(data: &mut Vec<f32>) {
     for i in 0..data.len() {
         data[i] = 2.0 * data[i] / 255.0 - 1.0;
     }
-}
-
-fn generate_random_theta(theta: &mut Vec<f32>) {
-    let mut rng = rand::rng();
-    let (inp, _label) = get_train_image_vector(0);
-
-    let range = rand::distr::Uniform::new(-0.01, 0.01).unwrap();
-    *theta = (&mut rng)
-        .sample_iter(range)
-        .take(inp.len())
-        .collect::<Vec<f32>>();
 }
 
 fn test() {
