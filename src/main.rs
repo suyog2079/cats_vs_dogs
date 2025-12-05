@@ -5,10 +5,6 @@ use std::io::Write;
 use std::io::{self};
 use std::path::Path;
 
-// const IMG_SIZE: usize = 20 * 20; // 400
-// const POLY_SIZE: usize = IMG_SIZE * (IMG_SIZE + 1) / 2; // 80400
-// const TOTAL_FEATURES: usize = 401; // 80401
-
 fn main() {
     let mut choice = String::new();
     println!("0 for train, 1 for test, 2 for evaluation: ");
@@ -62,7 +58,7 @@ fn train() {
     let mut sum: Vec<f32> = vec![0.0; inp.len()];
 
     let epochs = 50;
-    let lambda = 0.5;
+    let lambda = 12.5;
     let learning_rate = 0.001;
     for j in 0..epochs {
         println!("{}", j + 1);
@@ -84,6 +80,22 @@ fn train() {
     write_theta(&theta);
 }
 
+fn resize(data: &mut Vec<f32>, width: usize, height: usize) {
+    let mut resized = vec![0.0; width * height];
+    let original_width = (data.len() as f32).sqrt() as usize;
+    let original_height = original_width;
+    let h_ratio = original_height as f32 / height as f32;
+    let w_ratio = original_width as f32 / width as f32;
+    for y in 0..height {
+        for x in 0..width {
+            let orig_x = x * w_ratio as usize;
+            let orig_y = y * h_ratio as usize;
+            resized[y * width + x] = data[orig_y * original_width + orig_x];
+        }
+    }
+    *data = resized;
+}
+
 fn get_train_image_vector(i: i32) -> (Vec<f32>, i32) {
     let path: String;
     let label: i32;
@@ -95,8 +107,8 @@ fn get_train_image_vector(i: i32) -> (Vec<f32>, i32) {
         label = 1; // dog is 1 
     }
     let img = image::open(&Path::new(&path)).unwrap().to_luma8();
-    let img = image::imageops::resize(&img, 20, 20, imageops::FilterType::Gaussian);
     let mut inp: Vec<f32> = img.as_raw().iter().map(|&p| p as f32).collect();
+    resize(&mut inp, 25,25);
     let original_len = inp.len();
     normalize(&mut inp);
     for i in 0..original_len {
@@ -119,8 +131,8 @@ fn get_test_image_vector(i: i32) -> (Vec<f32>, i32) {
         label = 1; // dog is 1 
     }
     let img = image::open(&Path::new(&path)).unwrap().to_luma8();
-    let img = image::imageops::resize(&img, 20, 20, imageops::FilterType::Gaussian);
     let mut inp: Vec<f32> = img.as_raw().iter().map(|&p| p as f32).collect();
+    resize(&mut inp, 25,25);
     let original_len = inp.len();
     normalize(&mut inp);
     for i in 0..original_len {
